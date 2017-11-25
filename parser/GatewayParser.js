@@ -10,7 +10,8 @@ class GatewayParser extends DeviceParser {
         return {
             'Gateway_Lightbulb': GatewayLightbulbParser,
             'Gateway_LightSensor': GatewayLightSensorParser,
-            'Gateway_Switch_JoinPermission': GatewaySwitchJoinPermissionParser
+            'Gateway_Switch_JoinPermission': GatewaySwitchJoinPermissionParser,
+            'Gateway_Switch_Melody': GatewayMelodySwitchParser,
         }
     }
 }
@@ -562,4 +563,71 @@ class GatewaySwitchJoinPermissionParser extends AccessoryParser {
             // return defaultValue;
         // }
     // }
+}
+
+
+class GatewayMelodySwitchParser extends AccessoryParser {
+    constructor(platform, accessoryType) {
+        super(platform, accessoryType)
+        this.melodyButtonTimeout = {};
+    }
+    
+    getAccessoryCategory(deviceSid) {
+        return this.Accessory.Categories.SWITCH;
+    }
+    
+    getAccessoryInformation(deviceSid) {
+        return {
+            'Manufacturer': 'Aqara',
+            'Model': 'Gateway',
+            'SerialNumber': deviceSid
+        };
+    }
+
+    getServices(jsonObj, accessoryName) {
+        var that = this;
+        var result = [];
+        
+        var service = new that.Service.Switch(accessoryName);
+        service.getCharacteristic(that.Characteristic.On);
+        result.push(service);
+        
+        return result;
+    }
+    
+    parserAccessories(jsonObj) {
+        var that = this;
+        var deviceSid = jsonObj['sid'];
+        var uuid = that.getAccessoryUUID(deviceSid);
+        var accessory = that.platform.AccessoryUtil.getByUUID(uuid);
+        if(accessory) {
+            var service = accessory.getService(that.Service.Switch);
+            var onCharacteristic = service.getCharacteristic(that.Characteristic.On);
+            
+            if(onCharacteristic.listeners('set').length == 0) {
+                onCharacteristic.on("set", function(value, callback) {
+                    if(value)
+                    {
+                        var toneId = 10005;
+                        var volume = 3;
+                        clearTimeout(that.melodyButtonTimeout[deviceSid]);
+                        
+                        var command = '{"cmd":"write","model":"gateway","sid":"' + deviceSid + '","data":"{\\"mid\\":' + toneId + ',\\"vol\\":' + volume + ', \\"key\\": \\"${key}\\"}"}';
+                        that.platform.sendWriteCommand(deviceSid, command).then(result => {
+                            that.callback2HB(deviceSid, this, callback, null);
+                            if(value) {
+                                that.melodyButtonTimeout[deviceSid] = setTimeout(() => {
+                                    onCharacteristic.updateValue(false);
+                                }, 1000);
+                            }
+                        }).catch(function(err) {
+                            that.platform.log.error(err);
+                            that.callback2HB(deviceSid, this, callback, err);
+                        });
+                    }
+                });
+            }
+        }
+    }
+   
 }
