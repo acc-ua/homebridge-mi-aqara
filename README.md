@@ -149,7 +149,8 @@ For more information about default name, Please refer to file `sampleConfig.json
 If you like to use Light Bulb type for Light Switch to make grandma Siri happy, like snOOrz, you can set the following in the config.   
 Currently only supported: SingleSwitch, DuplexSwitch, SingleSwitchLN, DuplexSwitchLN.   
 **If you changed serviceType config, Please [clear register accessories](#clear-register-accessories).**   
-**melodies** section allows to create virtual buttons for playing system/user-recorded melodies:
+
+New **melodies** section allows to create virtual buttons for playing system/user-recorded melodies:
 Volume can be specified by 'volume' parameter, and 'id' is identifier of the internal or user-uploaded melody. 'id' can be: 8,1013,20,21,22,23,24,25,26,27,28,29 - for gateway's default melodies 10000 - stops any playing melodies 10001 and above - user-uploaded melodies
 Optionally, if you have several gateways you can specify 'gateway' parameter for each melody.
 
