@@ -106,6 +106,20 @@ For more information about default name, Please refer to file `sampleConfig.json
             "f0b4299a5b2b": "2F92E7DA90C66B86",
             "f0b4299a77dd": "syu3oasva3uqd5qd"
         },
+        "melodies":
+        [
+          { 
+            "id": 10001,
+            "volume": 5,
+            "name": "Button to play melody 1"
+          },
+          { 
+            "id":10002,
+            "volume":3,
+            "name":"Button to play melody 2",
+            "gateway":"f0b223a3484"
+          }
+        ],
         "defaultValue": {
             "158d0001000001": {
                 "ContactSensor_ContactSensor": {
@@ -135,6 +149,10 @@ For more information about default name, Please refer to file `sampleConfig.json
 If you like to use Light Bulb type for Light Switch to make grandma Siri happy, like snOOrz, you can set the following in the config.   
 Currently only supported: SingleSwitch, DuplexSwitch, SingleSwitchLN, DuplexSwitchLN.   
 **If you changed serviceType config, Please [clear register accessories](#clear-register-accessories).**   
+**melodies** section allows to create virtual buttons for playing system/user-recorded melodies:
+Volume can be specified by 'volume' parameter, and 'id' is identifier of the internal or user-uploaded melody. 'id' can be: 8,1013,20,21,22,23,24,25,26,27,28,29 - for gateway's default melodies 10000 - stops any playing melodies 10001 and above - user-uploaded melodies
+Optionally, if you have several gateways you can specify 'gateway' parameter for each melody.
+
 ```
 {
     "platforms": [{
