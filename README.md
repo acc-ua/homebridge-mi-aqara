@@ -1,13 +1,16 @@
 # homebridge-mi-aqara
+
+**New built-in/user-uploaded melodies playing functionality available** 
+
 **Installation**
+```
 git clone https://github.com/acc-ua/homebridge-mi-aqara-2.git
 cd homebridge-mi-aqara-2
 npm link
+```
 
+[![npm version](https://badge.fury.io/js/homebridge-mi-aqara.svg)](https://)  will be available later...
 
-[![npm version](https://badge.fury.io/js/homebridge-mi-aqara.svg)](https://)  wiil be available later...
-
-**New built-in/user-uploaded melodies playing functionality available** 
 
 homebridge plugin for XiaoMi Aqara plugin.  
 Thanks for [Mr.Yin](https://github.com/YinHangCode), [nfarina](https://github.com/nfarina)(the author of [homebridge](https://github.com/nfarina/homebridge)), [snOOrz](https://github.com/snOOrz)(the author of [homebridge-aqara](https://github.com/snOOrz/homebridge-aqara)), [licuhui](https://github.com/licuhui), [攀旺智能](https://pwzn.taobao.com/), [瀚思彼岸论坛](https://bbs.hassbian.com/), all other developer and testers.   
