@@ -1,5 +1,11 @@
 # homebridge-mi-aqara
-[![npm version](https://badge.fury.io/js/homebridge-mi-aqara.svg)](https://)
+**Installation**
+git clone https://github.com/acc-ua/homebridge-mi-aqara-2.git
+cd homebridge-mi-aqara-2
+npm link
+
+
+[![npm version](https://badge.fury.io/js/homebridge-mi-aqara.svg)](https://)  wiil be available later...
 
 **New built-in/user-uploaded melodies playing functionality available** 
 
