@@ -3,7 +3,7 @@
 **New built-in/user-uploaded melodies playing functionality available** 
 
 **Installation**
-[![npm version](https://badge.fury.io/js/homebridge-mi-aqara.svg)](https://www.npmjs.com/package/homebridge-mi-aqara-2)    
+[![npm version](https://badge.fury.io/js/homebridge-mi-aqara-2.svg)](https://www.npmjs.com/package/homebridge-mi-aqara-2)    
 ```
 npm install -g homebridge-mi-aqara-2
 ```
