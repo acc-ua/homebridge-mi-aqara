@@ -14,6 +14,7 @@ class TemperatureAndHumiditySensor2Parser extends DeviceParser {
         }
     }
 }
+TemperatureAndHumiditySensor2Parser.modelName = ['weather.v1', 'weather'];
 module.exports = TemperatureAndHumiditySensor2Parser;
 
 class TemperatureAndHumiditySensor2TemperatureSensorParser extends AccessoryParser {

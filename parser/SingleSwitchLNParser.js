@@ -12,6 +12,7 @@ class SingleSwitchLNParser extends DeviceParser {
         }
     }
 }
+SingleSwitchLNParser.modelName = ['ctrl_ln1', 'ctrl_ln1.aq1'];
 module.exports = SingleSwitchLNParser;
 
 class SingleSwitchLNSwitchParser extends AccessoryParser {
@@ -94,13 +95,27 @@ class SingleSwitchLNSwitchParser extends AccessoryParser {
             
             if(onCharacteristic.listeners('set').length == 0) {
                 onCharacteristic.on("set", function(value, callback) {
-                    var command = '{"cmd":"write","model":"ctrl_ln1","sid":"' + deviceSid + '","data":"{\\"channel_0\\":\\"' + (value ? 'on' : 'off') + '\\", \\"key\\": \\"${key}\\"}"}';
-                    that.platform.sendWriteCommand(deviceSid, command).then(result => {
+                    var model = that.platform.getDeviceModelBySid(deviceSid);
+                    var command = null;
+                    var proto_version_prefix = that.platform.getProtoVersionPrefixByProtoVersion(that.platform.getDeviceProtoVersionBySid(deviceSid));
+                    if(1 == proto_version_prefix) {
+                        command = '{"cmd":"write","model":"' + model + '","sid":"' + deviceSid + '","data":{"channel_0":"' + (value ? 'on' : 'off') + '", "key": "${key}"}}';
+                    } else if(2 == proto_version_prefix) {
+                        command = '{"cmd":"write","model":"' + model + '","sid":"' + deviceSid + '","params":[{"channel_0":"' + (value ? 'on' : 'off') + '"}], "key": "${key}"}';
+                    } else {
+                    }
+                    
+                    if(that.platform.ConfigUtil.getAccessoryIgnoreWriteResult(deviceSid, that.accessoryType)) {
+                        that.platform.sendWriteCommandWithoutFeedback(deviceSid, command);
                         that.callback2HB(deviceSid, this, callback, null);
-                    }).catch(function(err) {
-                        that.platform.log.error(err);
-                        that.callback2HB(deviceSid, this, callback, err);
-                    });
+                    } else {
+                        that.platform.sendWriteCommand(deviceSid, command).then(result => {
+                            that.callback2HB(deviceSid, this, callback, null);
+                        }).catch(function(err) {
+                            that.platform.log.error(err);
+                            that.callback2HB(deviceSid, this, callback, err);
+                        });
+                    }
                 });
             }
         }

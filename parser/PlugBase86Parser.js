@@ -12,6 +12,7 @@ class PlugBase86Parser extends DeviceParser {
         }
     }
 }
+PlugBase86Parser.modelName = ['86plug', 'ctrl_86plug', 'ctrl_86plug.aq1'];
 module.exports = PlugBase86Parser;
 
 class PlugBase86OutletParser extends AccessoryParser {
@@ -80,20 +81,42 @@ class PlugBase86OutletParser extends AccessoryParser {
             
             if (onCharacteristic.listeners('set').length == 0) {
                 onCharacteristic.on("set", function(value, callback) {
-                    var command = '{"cmd":"write","model":"86plug","sid":"' + deviceSid + '","data":"{\\"status\\":\\"' + (value ? 'on' : 'off') + '\\", \\"key\\": \\"${key}\\"}"}';
-                    that.platform.sendWriteCommand(deviceSid, command).then(result => {
+                    var model = that.platform.getDeviceModelBySid(deviceSid);
+                    var command = null;
+                    var proto_version_prefix = that.platform.getProtoVersionPrefixByProtoVersion(that.platform.getDeviceProtoVersionBySid(deviceSid));
+                    if(1 == proto_version_prefix) {
+                        command = '{"cmd":"write","model":"' + model + '","sid":"' + deviceSid + '","data":{"status":"' + (value ? 'on' : 'off') + '", "key": "${key}"}}';
+                    } else if(2 == proto_version_prefix) {
+                        command = '{"cmd":"write","model":"' + model + '","sid":"' + deviceSid + '","params":[{"channel_0":"' + (value ? 'on' : 'off') + '"}], "key": "${key}"}';
+                    } else {
+                    }
+                    
+                    if(that.platform.ConfigUtil.getAccessoryIgnoreWriteResult(deviceSid, that.accessoryType)) {
+                        that.platform.sendWriteCommandWithoutFeedback(deviceSid, command);
                         that.callback2HB(deviceSid, this, callback, null);
-                    }).catch(function(err) {
-                        that.platform.log.error(err);
-                        that.callback2HB(deviceSid, this, callback, err);
-                    });
+                    } else {
+                        that.platform.sendWriteCommand(deviceSid, command).then(result => {
+                            that.callback2HB(deviceSid, this, callback, null);
+                        }).catch(function(err) {
+                            that.platform.log.error(err);
+                            that.callback2HB(deviceSid, this, callback, err);
+                        });
+                    }
                 });
             }
         }
     }
     
     getOnCharacteristicValue(jsonObj, defaultValue) {
-        var value = this.getValueFrJsonObjData(jsonObj, 'status');
+        var value = null;
+        var proto_version_prefix = this.platform.getProtoVersionPrefixByProtoVersion(this.platform.getDeviceProtoVersionBySid(jsonObj['sid']));
+        if(1 == proto_version_prefix) {
+            value = this.getValueFrJsonObjData1(jsonObj, 'status');
+        } else if(2 == proto_version_prefix) {
+            value = this.getValueFrJsonObjData2(jsonObj, 'channel_0');
+        } else {
+        }
+        
         if(value === 'on') {
             return true;
         } else if(value === 'off') {

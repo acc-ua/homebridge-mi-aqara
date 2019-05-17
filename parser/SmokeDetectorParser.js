@@ -12,6 +12,7 @@ class SmokeDetectorParser extends DeviceParser {
         }
     }
 }
+SmokeDetectorParser.modelName = ['smoke', 'sensor_smoke'];
 module.exports = SmokeDetectorParser;
 
 class SmokeDetectorSmokeSensorParser extends AccessoryParser {

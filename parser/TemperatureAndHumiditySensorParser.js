@@ -13,6 +13,7 @@ class TemperatureAndHumiditySensorParser extends DeviceParser {
         }
     }
 }
+TemperatureAndHumiditySensorParser.modelName = ['sensor_ht'];
 module.exports = TemperatureAndHumiditySensorParser;
 
 class TemperatureAndHumiditySensorTemperatureSensorParser extends AccessoryParser {
@@ -57,6 +58,10 @@ class TemperatureAndHumiditySensorTemperatureSensorParser extends AccessoryParse
         if(accessory) {
             var service = accessory.getService(that.Service.TemperatureSensor);
             var currentTemperatureCharacteristic = service.getCharacteristic(that.Characteristic.CurrentTemperature);
+            currentTemperatureCharacteristic.setProps({
+                maxValue: 80,
+                minValue: -40
+            });
             var value = that.getCurrentTemperatureCharacteristicValue(jsonObj, null);
             if(null != value) {
                 currentTemperatureCharacteristic.updateValue(value);

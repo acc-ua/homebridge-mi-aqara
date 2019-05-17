@@ -13,6 +13,7 @@ class MotionSensor2Parser extends DeviceParser {
         }
     }
 }
+MotionSensor2Parser.modelName = ['sensor_motion.aq2'];
 module.exports = MotionSensor2Parser;
 
 class MotionSensor2MotionSensorParser extends AccessoryParser {
@@ -86,7 +87,15 @@ class MotionSensor2MotionSensorParser extends AccessoryParser {
     }
     
     getMotionDetectedCharacteristicValue(jsonObj, defaultValue) {
-        var value = this.getValueFrJsonObjData(jsonObj, 'status');
+        var value = null;
+        var proto_version_prefix = this.platform.getProtoVersionPrefixByProtoVersion(this.platform.getDeviceProtoVersionBySid(jsonObj['sid']));
+        if(1 == proto_version_prefix) {
+            value = this.getValueFrJsonObjData1(jsonObj, 'status');
+        } else if(2 == proto_version_prefix) {
+            value = this.getValueFrJsonObjData2(jsonObj, 'motion_status');
+        } else {
+        }
+        
         return (null != value) ? (value === 'motion') : false;
     }
 }
@@ -134,7 +143,7 @@ class MotionSensor2LightSensorParser extends AccessoryParser {
             var service = accessory.getService(that.Service.LightSensor);
             var currentAmbientLightLevelCharacteristic = service.getCharacteristic(that.Characteristic.CurrentAmbientLightLevel);
             var value = that.getCurrentAmbientLightLevelCharacteristicValue(jsonObj, null);
-            if(value) {
+            if(null != value) {
                 currentAmbientLightLevelCharacteristic.updateValue(value);
             }
             
@@ -144,7 +153,7 @@ class MotionSensor2LightSensorParser extends AccessoryParser {
                         var command = '{"cmd":"read", "sid":"' + deviceSid + '"}';
                         that.platform.sendReadCommand(deviceSid, command).then(result => {
                             var value = that.getCurrentAmbientLightLevelCharacteristicValue(result, null);
-                            if(value) {
+                            if(null != value) {
                                 callback(null, value);
                             } else {
                                 callback(new Error('get value fail: ' + result));
@@ -162,7 +171,15 @@ class MotionSensor2LightSensorParser extends AccessoryParser {
     }
     
     getCurrentAmbientLightLevelCharacteristicValue(jsonObj, defaultValue) {
-        var value = this.getValueFrJsonObjData(jsonObj, 'lux');
+        var value = null;
+        var proto_version_prefix = this.platform.getProtoVersionPrefixByProtoVersion(this.platform.getDeviceProtoVersionBySid(jsonObj['sid']));
+        if(1 == proto_version_prefix) {
+            value = this.getValueFrJsonObjData1(jsonObj, 'lux');
+        } else if(2 == proto_version_prefix) {
+            value = this.getValueFrJsonObjData2(jsonObj, 'lux');
+        } else {
+        }
+        
         if(null != value) {
             var lux = value / 1.0;
             if(!isNaN(lux)) {

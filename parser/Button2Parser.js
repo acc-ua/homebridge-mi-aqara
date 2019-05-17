@@ -12,10 +12,11 @@ class Button2Parser extends DeviceParser {
             'Button2_StatelessProgrammableSwitch': Button2StatelessProgrammableSwitchParser,
             'Button2_Switch_VirtualSinglePress': Button2SwitchVirtualSinglePressParser,
             'Button2_Switch_VirtualDoublePress': Button2SwitchVirtualDoublePressParser
-            // 'Button_Switch_VirtualLongPress': ButtonSwitchVirtualLongPressParser
+            // 'Button_Switch_VirtualLongPress': Button2SwitchVirtualLongPressParser
         }
     }
 }
+Button2Parser.modelName = ['sensor_switch.aq2'];
 module.exports = Button2Parser;
 
 class Button2StatelessProgrammableSwitchParser extends AccessoryParser {
@@ -24,7 +25,11 @@ class Button2StatelessProgrammableSwitchParser extends AccessoryParser {
     }
     
     getAccessoryCategory(deviceSid) {
-        return this.Accessory.Categories.PROGRAMMABLE_SWITCH;
+        var serviceType = this.platform.ConfigUtil.getAccessoryServiceType(deviceSid, this.accessoryType);
+        if(serviceType == 'MotionSensor') 
+            return this.Accessory.Categories.SENSOR;
+        else
+            return this.Accessory.Categories.PROGRAMMABLE_SWITCH;
     }
     
     getAccessoryInformation(deviceSid) {
@@ -38,9 +43,21 @@ class Button2StatelessProgrammableSwitchParser extends AccessoryParser {
     getServices(jsonObj, accessoryName) {
         var that = this;
         var result = [];
-        
-        var service = new that.Service.StatelessProgrammableSwitch(accessoryName);
-        service.getCharacteristic(that.Characteristic.ProgrammableSwitchEvent);
+        var service = null;
+        var deviceSid = jsonObj['sid'];
+
+        var serviceType = that.platform.ConfigUtil.getAccessoryServiceType(deviceSid, that.accessoryType);
+
+        that.platform.log.info("serviceType:"+serviceType+" sid:"+deviceSid);
+        if(serviceType == 'MotionSensor') {
+            service = new that.Service.MotionSensor(accessoryName);
+that.platform.log.error("MOTION0:"+ service);
+            service.getCharacteristic(that.Characteristic.MotionDetected);
+            that.platform.log.error("REG AS MOTION sid:"+deviceSid);
+        } else {
+           service = new that.Service.StatelessProgrammableSwitch(accessoryName);
+           service.getCharacteristic(that.Characteristic.ProgrammableSwitchEvent);
+        }
         result.push(service);
         
         var batteryService  = new that.Service.BatteryService(accessoryName);
@@ -58,19 +75,53 @@ class Button2StatelessProgrammableSwitchParser extends AccessoryParser {
         var uuid = that.getAccessoryUUID(deviceSid);
         var accessory = that.platform.AccessoryUtil.getByUUID(uuid);
         if(accessory) {
-            var service = accessory.getService(that.Service.StatelessProgrammableSwitch);
-            var programmableSwitchEventCharacteristic = service.getCharacteristic(that.Characteristic.ProgrammableSwitchEvent);
-            var value = that.getProgrammableSwitchEventCharacteristicValue(jsonObj, null);
-            if(null != value) {
-                programmableSwitchEventCharacteristic.updateValue(value);
+            var service = null;
+            var serviceType = that.platform.ConfigUtil.getAccessoryServiceType(deviceSid, that.accessoryType);
+            if(serviceType == 'MotionSensor') {
+                service = accessory.getService(that.Service.MotionSensor);
+                that.platform.log.error("MOTION1:"+ service);
+                var motionDetectedCharacteristic = service.getCharacteristic(that.Characteristic.MotionDetected);
+                var value = that.getMotionDetectedCharacteristicValue(jsonObj, null);
+                if(null != value) {
+                    motionDetectedCharacteristic.updateValue(value);
+                }
+            } else {
+                 service = accessory.getService(that.Service.StatelessProgrammableSwitch);
+                var programmableSwitchEventCharacteristic = service.getCharacteristic(that.Characteristic.ProgrammableSwitchEvent);
+                var value = that.getProgrammableSwitchEventCharacteristicValue(jsonObj, null);
+                if(null != value) {
+                 programmableSwitchEventCharacteristic.updateValue(value);
+               }
             }
             
             that.parserBatteryService(accessory, jsonObj);
         }
     }
     
+    getMotionDetectedCharacteristicValue(jsonObj, defaultValue) {
+        var value = null;
+        var proto_version_prefix = this.platform.getProtoVersionPrefixByProtoVersion(this.platform.getDeviceProtoVersionBySid(jsonObj['sid']));
+        if(1 == proto_version_prefix) {
+            value = this.getValueFrJsonObjData1(jsonObj, 'status');
+        } else if(2 == proto_version_prefix) {
+            value = this.getValueFrJsonObjData2(jsonObj, 'button_0');
+        } else {
+        }
+        
+        //pseudo motion for click action 
+        return (null != value) ? (value === 'click') : false;
+    }
+
     getProgrammableSwitchEventCharacteristicValue(jsonObj, defaultValue) {
-        var value = this.getValueFrJsonObjData(jsonObj, 'status');
+        var value = null;
+        var proto_version_prefix = this.platform.getProtoVersionPrefixByProtoVersion(this.platform.getDeviceProtoVersionBySid(jsonObj['sid']));
+        if(1 == proto_version_prefix) {
+            value = this.getValueFrJsonObjData1(jsonObj, 'status');
+        } else if(2 == proto_version_prefix) {
+            value = this.getValueFrJsonObjData2(jsonObj, 'button_0');
+        } else {
+        }
+        
         if(value === 'click') {
             return this.Characteristic.ProgrammableSwitchEvent.SINGLE_PRESS;
         } else if(value === 'double_click') {
@@ -88,7 +139,7 @@ class Button2SwitchVirtualBasePressParser extends SwitchVirtualBasePressParser {
     getAccessoryInformation(deviceSid) {
         return {
             'Manufacturer': 'Aqara',
-            'Model': 'Button',
+            'Model': 'Button 2',
             'SerialNumber': deviceSid
         };
     }
@@ -96,30 +147,94 @@ class Button2SwitchVirtualBasePressParser extends SwitchVirtualBasePressParser {
 
 class Button2SwitchVirtualSinglePressParser extends Button2SwitchVirtualBasePressParser {
     getWriteCommand(deviceSid, value) {
-        return '{"cmd":"write","model":"sensor_switch.aq2","sid":"' + deviceSid + '","data":"{\\"status\\":\\"click\\", \\"key\\": \\"${key}\\"}"}';
+        var model = this.platform.getDeviceModelBySid(deviceSid);
+        var command = null;
+        var proto_version_prefix = this.platform.getProtoVersionPrefixByProtoVersion(this.platform.getDeviceProtoVersionBySid(deviceSid));
+        if(1 == proto_version_prefix) {
+            command = '{"cmd":"write","model":"' + model + '","sid":"' + deviceSid + '","data":{"status":"click", "key": "${key}"}}';
+        } else if(2 == proto_version_prefix) {
+            command = '{"cmd":"write","model":"' + model + '","sid":"' + deviceSid + '","params":[{"button_0":"click"}], "key": "${key}"}';
+        } else {
+        }
+        
+        return command;
     }
     
     doSomething(jsonObj) {
         var deviceSid = jsonObj['sid'];
-        var newObj = JSON.parse("{\"cmd\":\"report\",\"model\":\"sensor_switch.aq2\",\"sid\":\"" + deviceSid + "\",\"data\":\"{\\\"status\\\":\\\"click\\\"}\"}");
+        var model = this.platform.getDeviceModelBySid(deviceSid);
+        var command = null;
+        var proto_version_prefix = this.platform.getProtoVersionPrefixByProtoVersion(this.platform.getDeviceProtoVersionBySid(jsonObj['sid']));
+        if(1 == proto_version_prefix) {
+            command = '{"cmd":"report","model":"' + model + '","sid":"' + deviceSid + '", "data":{"status":"click"}}';
+        } else if(2 == proto_version_prefix) {
+            command = '{"cmd":"report","model":"' + model + '","sid":"' + deviceSid + '", "params":[{"button_0":"click"}]}';
+        } else {
+        }
+        var newObj = JSON.parse(command);
         this.platform.ParseUtil.parserAccessories(newObj);
     }
 }
 
 class Button2SwitchVirtualDoublePressParser extends Button2SwitchVirtualBasePressParser {
     getWriteCommand(deviceSid, value) {
-        return '{"cmd":"write","model":"sensor_switch.aq2","sid":"' + deviceSid + '","data":"{\\"status\\":\\"double_click\\", \\"key\\": \\"${key}\\"}"}';
+        var model = this.platform.getDeviceModelBySid(deviceSid);
+        var command = null;
+        var proto_version_prefix = this.platform.getProtoVersionPrefixByProtoVersion(this.platform.getDeviceProtoVersionBySid(deviceSid));
+        if(1 == proto_version_prefix) {
+            command = '{"cmd":"write","model":"' + model + '","sid":"' + deviceSid + '","data":{"status":"double_click", "key": "${key}"}}';
+        } else if(2 == proto_version_prefix) {
+            command = '{"cmd":"write","model":"' + model + '","sid":"' + deviceSid + '","params":[{"button_0":"double_click"}], "key": "${key}"}';
+        } else {
+        }
+        
+        return command;
     }
     
     doSomething(jsonObj) {
         var deviceSid = jsonObj['sid'];
-        var newObj = JSON.parse("{\"cmd\":\"report\",\"model\":\"sensor_switch.aq2\",\"sid\":\"" + deviceSid + "\",\"data\":\"{\\\"status\\\":\\\"double_click\\\"}\"}");
+        var model = this.platform.getDeviceModelBySid(deviceSid);
+        var command = null;
+        var proto_version_prefix = this.platform.getProtoVersionPrefixByProtoVersion(this.platform.getDeviceProtoVersionBySid(deviceSid));
+        if(1 == proto_version_prefix) {
+            command = '{"cmd":"report","model":"' + model + '","sid":"' + deviceSid + '", "data":{"status":"double_click"}}';
+        } else if(2 == proto_version_prefix) {
+            command = '{"cmd":"report","model":"' + model + '","sid":"' + deviceSid + '", "params":[{"button_0":"double_click"}]}';
+        } else {
+        }
+        var newObj = JSON.parse(command);
         this.platform.ParseUtil.parserAccessories(newObj);
     }
 }
 
 // class Button2SwitchVirtualLongPressParser extends Button2SwitchVirtualBasePressParser {
     // getWriteCommand(deviceSid, value) {
-        // return '{"cmd":"write","model":"sensor_switch.aq2","sid":"' + deviceSid + '","data":"{\\"status\\":\\"long_click_press\\", \\"key\\": \\"${key}\\"}"}';
+        // var model = this.platform.getDeviceModelBySid(deviceSid);
+        // var command = null;
+        // var proto_version_prefix = this.platform.getProtoVersionPrefixByProtoVersion(this.platform.getDeviceProtoVersionBySid(deviceSid));
+        // if(1 == proto_version_prefix) {
+            // command = '{"cmd":"write","model":"' + model + '","sid":"' + deviceSid + '","data":{"status":"long_click_press", "key": "${key}"}}';
+        // } else if(2 == proto_version_prefix) {
+            // command = '{"cmd":"write","model":"' + model + '","sid":"' + deviceSid + '","params":[{"button_0":"long_click_press"}], "key": "${key}"}';
+        // } else {
+        // }
+
+        // return command;
+    // }
+    
+    // doSomething(jsonObj) {
+        // var deviceSid = jsonObj['sid'];
+        // var model = this.platform.getDeviceModelBySid(deviceSid);
+        // var command = null;
+        // var proto_version_prefix = this.platform.getProtoVersionPrefixByProtoVersion(this.platform.getDeviceProtoVersionBySid(deviceSid));
+        // if(1 == proto_version_prefix) {
+            // command = '{"cmd":"report","model":"' + model + '","sid":"' + deviceSid + '", "data":{"status":"long_click_press"}}';
+        // } else if(2 == proto_version_prefix) {
+            // command = '{"cmd":"report","model":"' + model + '","sid":"' + deviceSid + '", "params":[{"button_0":"long_click_press"}]}';
+        // } else {
+        // }
+        // var newObj = JSON.parse(command);
+        // this.platform.ParseUtil.parserAccessories(newObj);
     // }
 // }
+

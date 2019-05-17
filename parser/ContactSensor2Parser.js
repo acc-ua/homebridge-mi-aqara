@@ -12,6 +12,7 @@ class ContactSensor2Parser extends DeviceParser {
         }
     }
 }
+ContactSensor2Parser.modelName = ['sensor_magnet.aq2'];
 module.exports = ContactSensor2Parser;
 
 class ContactSensor2ContactSensorParser extends AccessoryParser {
@@ -85,7 +86,15 @@ class ContactSensor2ContactSensorParser extends AccessoryParser {
     }
     
     getContactSensorStateCharacteristicValue(jsonObj, defaultValue) {
-        var value = this.getValueFrJsonObjData(jsonObj, 'status');
+        var value = null;
+        var proto_version_prefix = this.platform.getProtoVersionPrefixByProtoVersion(this.platform.getDeviceProtoVersionBySid(jsonObj['sid']));
+        if(1 == proto_version_prefix) {
+            value = this.getValueFrJsonObjData1(jsonObj, 'status');
+        } else if(2 == proto_version_prefix) {
+            value = this.getValueFrJsonObjData2(jsonObj, 'window_status');
+        } else {
+        }
+        
         return (null != value) ? (value === 'close') : defaultValue;
     }
 }

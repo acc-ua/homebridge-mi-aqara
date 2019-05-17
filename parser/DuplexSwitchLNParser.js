@@ -13,6 +13,7 @@ class DuplexSwitchLNParser extends DeviceParser {
         }
     }
 }
+DuplexSwitchLNParser.modelName = ['ctrl_ln2', 'ctrl_ln2.aq1'];
 module.exports = DuplexSwitchLNParser;
 
 class DuplexSwitchLNSwitchBaseParser extends AccessoryParser {
@@ -96,12 +97,17 @@ class DuplexSwitchLNSwitchBaseParser extends AccessoryParser {
             if(onCharacteristic.listeners('set').length == 0) {
                 onCharacteristic.on("set", function(value, callback) {
                     var command = that.getWriteCommand(deviceSid, value);
-                    that.platform.sendWriteCommand(deviceSid, command).then(result => {
+                    if(that.platform.ConfigUtil.getAccessoryIgnoreWriteResult(deviceSid, that.accessoryType)) {
+                        that.platform.sendWriteCommandWithoutFeedback(deviceSid, command);
                         that.callback2HB(deviceSid, this, callback, null);
-                    }).catch(function(err) {
-                        that.platform.log.error(err);
-                        that.callback2HB(deviceSid, this, callback, err);
-                    });
+                    } else {
+                        that.platform.sendWriteCommand(deviceSid, command).then(result => {
+                            that.callback2HB(deviceSid, this, callback, null);
+                        }).catch(function(err) {
+                            that.platform.log.error(err);
+                            that.callback2HB(deviceSid, this, callback, err);
+                        });
+                    }
                 });
             }
         }
@@ -121,7 +127,17 @@ class DuplexSwitchLNSwitchLeftParser extends DuplexSwitchLNSwitchBaseParser {
     }
     
     getWriteCommand(deviceSid, value) {
-        return '{"cmd":"write","model":"ctrl_ln2","sid":"' + deviceSid + '","data":"{\\"channel_0\\":\\"' + (value ? 'on' : 'off') + '\\", \\"key\\": \\"${key}\\"}"}';
+        var model = this.platform.getDeviceModelBySid(deviceSid);
+        var command = null;
+        var proto_version_prefix = this.platform.getProtoVersionPrefixByProtoVersion(this.platform.getDeviceProtoVersionBySid(deviceSid));
+        if(1 == proto_version_prefix) {
+            command = '{"cmd":"write","model":"' + model + '","sid":"' + deviceSid + '","data":{"channel_0":"' + (value ? 'on' : 'off') + '", "key": "${key}"}}';
+        } else if(2 == proto_version_prefix) {
+            command = '{"cmd":"write","model":"' + model + '","sid":"' + deviceSid + '","params":[{"channel_0":"' + (value ? 'on' : 'off') + '"}], "key": "${key}"}';
+        } else {
+        }
+        
+        return command;
     }
 }
 
@@ -138,6 +154,16 @@ class DuplexSwitchLNSwitchRightParser extends DuplexSwitchLNSwitchBaseParser {
     }
     
     getWriteCommand(deviceSid, value) {
-        return '{"cmd":"write","model":"ctrl_ln2","sid":"' + deviceSid + '","data":"{\\"channel_1\\":\\"' + (value ? 'on' : 'off') + '\\", \\"key\\": \\"${key}\\"}"}';
+        var model = this.platform.getDeviceModelBySid(deviceSid);
+        var command = null;
+        var proto_version_prefix = this.platform.getProtoVersionPrefixByProtoVersion(this.platform.getDeviceProtoVersionBySid(deviceSid));
+        if(1 == proto_version_prefix) {
+            command = '{"cmd":"write","model":"' + model + '","sid":"' + deviceSid + '","data":{"channel_1":"' + (value ? 'on' : 'off') + '", "key": "${key}"}}';
+        } else if(2 == proto_version_prefix) {
+            command = '{"cmd":"write","model":"' + model + '","sid":"' + deviceSid + '","params":[{"channel_1":"' + (value ? 'on' : 'off') + '"}], "key": "${key}"}';
+        } else {
+        }
+        
+        return command;
     }
 }

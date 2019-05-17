@@ -12,6 +12,7 @@ class WaterDetectorParser extends DeviceParser {
         }
     }
 }
+WaterDetectorParser.modelName = ['sensor_wleak.aq1'];
 module.exports = WaterDetectorParser;
 
 class WaterDetectorLeakSensorParser extends AccessoryParser {
@@ -66,7 +67,7 @@ class WaterDetectorLeakSensorParser extends AccessoryParser {
                     leakDetectedCharacteristic.on("get", function(callback) {
                         var command = '{"cmd":"read", "sid":"' + deviceSid + '"}';
                         that.platform.sendReadCommand(deviceSid, command).then(result => {
-                            var value = that.getLeakDetectedCharacteristicValue(result, null);
+                            var value = that.getLeakDetectedCharacteristicValue(result, false);
                             if(null != value) {
                                 callback(null, value ? that.Characteristic.LeakDetected.LEAK_DETECTED : that.Characteristic.LeakDetected.LEAK_NOT_DETECTED);
                             } else {
@@ -85,7 +86,15 @@ class WaterDetectorLeakSensorParser extends AccessoryParser {
     }
     
     getLeakDetectedCharacteristicValue(jsonObj, defaultValue) {
-        var value = this.getValueFrJsonObjData(jsonObj, 'status');
+        var value = null;
+        var proto_version_prefix = this.platform.getProtoVersionPrefixByProtoVersion(this.platform.getDeviceProtoVersionBySid(jsonObj['sid']));
+        if(1 == proto_version_prefix) {
+            value = this.getValueFrJsonObjData1(jsonObj, 'status');
+        } else if(2 == proto_version_prefix) {
+            value = this.getValueFrJsonObjData2(jsonObj, 'wleak_status');
+        } else {
+        }
+        
         if(value === 'leak') {
             return true;
         } else if(value === 'no_leak') {

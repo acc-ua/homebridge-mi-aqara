@@ -12,6 +12,7 @@ class MotionSensorParser extends DeviceParser {
         }
     }
 }
+MotionSensorParser.modelName = ['motion'];
 module.exports = MotionSensorParser;
 
 class MotionSensorMotionSensorParser extends AccessoryParser {
@@ -85,7 +86,15 @@ class MotionSensorMotionSensorParser extends AccessoryParser {
     }
     
     getMotionDetectedCharacteristicValue(jsonObj, defaultValue) {
-        var value = this.getValueFrJsonObjData(jsonObj, 'status');
+        var value = null;
+        var proto_version_prefix = this.platform.getProtoVersionPrefixByProtoVersion(this.platform.getDeviceProtoVersionBySid(jsonObj['sid']));
+        if(1 == proto_version_prefix) {
+            value = this.getValueFrJsonObjData1(jsonObj, 'status');
+        } else if(2 == proto_version_prefix) {
+            value = this.getValueFrJsonObjData2(jsonObj, 'motion_status');
+        } else {
+        }
+        
         return (null != value) ? (value === 'motion') : false;
     }
 }

@@ -1,21 +1,55 @@
 {
-  "name": "homebridge-mi-aqara-2",
-  "version": "1.0.2",
+  "_from": "homebridge-mi-aqara-2",
+  "_id": "homebridge-mi-aqara-2@0.8.0",
+  "_inBundle": false,
+  "_integrity": "sha512-kew8ifzSsZN74KXAD08G4klb8+NGAYwkIsixm2Tadsn62komSZpKigzq9Io+cdS9zHMAngiBcmGoaSmBS13mUA==",
+  "_location": "/homebridge-mi-aqara-2",
+  "_phantomChildren": {},
+  "_requested": {
+    "type": "tag",
+    "registry": true,
+    "raw": "homebridge-mi-aqara",
+    "name": "homebridge-mi-aqara",
+    "escapedName": "homebridge-mi-aqara-2",
+    "rawSpec": "",
+    "saveSpec": null,
+    "fetchSpec": "latest"
+  },
+  "_requiredBy": [
+    "#USER"
+  ],
+  "_resolved": "https://registry.npmjs.org/homebridge-mi-aqara/-/homebridge-mi-aqara-0.8.0.tgz",
+  "_shasum": "6d4a6051e2f27d1a4a274831d8cb1a8e665edcf5",
+  "_spec": "homebridge-mi-aqara",
+  "_where": "/home/pi",
+  "author": {
+    "name": "hang.yin"
+  },
+  "bugs": {
+    "url": "https://github.com/YinHangCode/homebridge-mi-aqara/issues"
+  },
+  "bundleDependencies": false,
+  "dependencies": {
+    "body-parser": "1.18.3",
+    "express": "4.16.3",
+    "express-session": "1.15.6",
+    "mqtt": "2.18.0"
+  },
+  "deprecated": false,
   "description": "XiaoMi Aqara plugins for HomeBridge(https://github.com/nfarina/homebridge).",
-  "license": "ISC",
+  "engines": {
+    "homebridge": ">=0.4.1",
+    "node": ">=0.12.0"
+  },
+  "homepage": "https://github.com/YinHangCode/homebridge-mi-aqara#readme",
   "keywords": [
     "homebridge-plugin"
   ],
-  "author": "acc-ua",
+  "license": "GPL",
+  "name": "homebridge-mi-aqara",
   "repository": {
     "type": "git",
-    "url": "https://github.com/acc-ua/homebridge-mi-aqara-2"
+    "url": "git+https://github.com/YinHangCode/homebridge-mi-aqara.git"
   },
-  "bugs": {
-    "url": "https://github.com/acc-ua/homebridge-mi-aqara-2/issues"
-  },
-  "engines": {
-    "node": ">=0.12.0",
-    "homebridge": ">=0.4.1"
-  }
+  "version": "0.8.0"
 }

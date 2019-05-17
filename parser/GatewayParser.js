@@ -1,11 +1,12 @@
 const DeviceParser = require('./DeviceParser');
 const AccessoryParser = require('./AccessoryParser');
+const util = require('util');
 
 class GatewayParser extends DeviceParser {
     constructor(platform) {
         super(platform);
-    };
-
+    }
+    
     getAccessoriesParserInfo() {
         var parsersInfo = {
             'Gateway_Lightbulb': GatewayLightbulbParser,
@@ -20,11 +21,11 @@ class GatewayParser extends DeviceParser {
             this.platform._gatewayMelodyButtons[accessoryID] = melodies[item];
         }
 
-
-
         return parsersInfo;
     }
 }
+GatewayParser.modelName = ['gateway', 'gateway.v3'];
+GatewayParser.isGateway = true;
 module.exports = GatewayParser;
 
 class GatewayLightSensorParser extends AccessoryParser {
@@ -65,7 +66,7 @@ class GatewayLightSensorParser extends AccessoryParser {
             
             var currentAmbientLightLevelCharacteristic = service.getCharacteristic(that.Characteristic.CurrentAmbientLightLevel);
             var value = that.getCurrentAmbientLightLevelCharacteristicValue(jsonObj, null);
-            if(value) {
+            if(null != value) {
                 currentAmbientLightLevelCharacteristic.updateValue(value);
             }
             
@@ -75,7 +76,7 @@ class GatewayLightSensorParser extends AccessoryParser {
                         var command = '{"cmd":"read", "sid":"' + deviceSid + '"}';
                         that.platform.sendReadCommand(deviceSid, command).then(result => {
                             var value = that.getCurrentAmbientLightLevelCharacteristicValue(result, null);
-                            if(value) {
+                            if(null != value) {
                                 callback(null, value);
                             } else {
                                 callback(new Error('get value fail: ' + result));
@@ -401,12 +402,17 @@ class GatewayLightbulbParser extends AccessoryParser {
             }
             
             var command = '{"cmd":"write","model":"gateway","sid":"' + deviceSid + '","data":"{\\"rgb\\":' + prepValue + ', \\"key\\": \\"${key}\\"}"}';
-            that.platform.sendWriteCommand(deviceSid, command).then(result => {
-                resolve(result);
-            }).catch(function(err) {
-                that.platform.log.error(err);
-                reject(err);
-            });
+            if(that.platform.ConfigUtil.getAccessoryIgnoreWriteResult(deviceSid, that.accessoryType)) {
+                that.platform.sendWriteCommandWithoutFeedback(deviceSid, command);
+                resolve(null);
+            } else {
+                that.platform.sendWriteCommand(deviceSid, command).then(result => {
+                    resolve(result);
+                }).catch(function(err) {
+                    that.platform.log.error(err);
+                    reject(err);
+                });
+            }
         })
     }
 
@@ -547,17 +553,27 @@ class GatewaySwitchJoinPermissionParser extends AccessoryParser {
                 onCharacteristic.on("set", function(value, callback) {
                     clearTimeout(that.joinPermissionTimeout[deviceSid]);
                     var command = '{"cmd":"write","model":"gateway","sid":"' + deviceSid + '","data":"{\\"join_permission\\":\\"' + (value ? 'yes' : 'no') + '\\", \\"key\\": \\"${key}\\"}"}';
-                    that.platform.sendWriteCommand(deviceSid, command).then(result => {
+                    if(that.platform.ConfigUtil.getAccessoryIgnoreWriteResult(deviceSid, that.accessoryType)) {
+                        that.platform.sendWriteCommandWithoutFeedback(deviceSid, command);
                         that.callback2HB(deviceSid, this, callback, null);
                         if(value) {
                             that.joinPermissionTimeout[deviceSid] = setTimeout(() => {
                                 onCharacteristic.updateValue(false);
                             }, 30 * 1000);
                         }
-                    }).catch(function(err) {
-                        that.platform.log.error(err);
-                        that.callback2HB(deviceSid, this, callback, err);
-                    });
+                    } else {
+                        that.platform.sendWriteCommand(deviceSid, command).then(result => {
+                            that.callback2HB(deviceSid, this, callback, null);
+                            if(value) {
+                                that.joinPermissionTimeout[deviceSid] = setTimeout(() => {
+                                    onCharacteristic.updateValue(false);
+                                }, 30 * 1000);
+                            }
+                        }).catch(function(err) {
+                            that.platform.log.error(err);
+                            that.callback2HB(deviceSid, this, callback, err);
+                        });
+                    }
                 });
             }
         }
@@ -574,7 +590,6 @@ class GatewaySwitchJoinPermissionParser extends AccessoryParser {
         // }
     // }
 }
-
 
 class GatewayMelodySwitchParser extends AccessoryParser {
     constructor(platform, accessoryType) {

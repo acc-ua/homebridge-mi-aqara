@@ -12,6 +12,7 @@ class NatgasDetectorParser extends DeviceParser {
         }
     }
 }
+NatgasDetectorParser.modelName = ['natgas', 'sensor_natgas'];
 module.exports = NatgasDetectorParser;
 
 class NatgasDetectorSmokeSensorParser extends AccessoryParser {

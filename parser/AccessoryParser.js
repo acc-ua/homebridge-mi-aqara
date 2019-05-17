@@ -10,8 +10,17 @@ class AccessoryParser {
         this.UUIDGen = platform.UUIDGen;
     }
     
-    getAccessoryUUID(deviceSid) {
-        return this.UUIDGen.generate(deviceSid + this.accessoryType);
+    getAccessoryUUID(deviceSid, accessoryType) {
+        var result = null;
+        switch(arguments.length) {
+            case 1:
+                result = this.UUIDGen.generate(deviceSid + this.accessoryType);
+                break;
+            case 2:
+                result = this.UUIDGen.generate(deviceSid + accessoryType);
+                break;
+        }
+        return result;
     }
     
     getAccessoryCategory() {
@@ -48,8 +57,12 @@ class AccessoryParser {
                 accessory.addService(service, accessoryName);
             });
             
-            // accessory.reachable = true;
-            
+            accessory.reachable = true;
+            accessory.on('identify', function(paired, callback) {
+                that.platform.log.debug(accessory.displayName + " Identify!!!");
+                callback();
+            });
+
             return accessory;
         }
         
@@ -59,25 +72,7 @@ class AccessoryParser {
     parserAccessories(jsonObj) {
     }
     
-    getLowBatteryByVoltage(voltage) {
-        return isNaN(voltage) ? NaN : (voltage >= 2801 ? 0 : 1);
-    }
-
-    getBatteryLevelByVoltage(voltage) {
-        return isNaN(voltage) ? NaN : ((voltage - 2800)/5);
-    }
-    
-    getStatusLowBatteryCharacteristicValue(jsonObj, defaultValue) {
-        var value = this.getValueFrJsonObjData(jsonObj, 'voltage');
-        return value ? this.getLowBatteryByVoltage(value / 1.0) : defaultValue;
-    }
-    
-    getBatteryLevelCharacteristicValue(jsonObj, defaultValue) {
-        var value = this.getValueFrJsonObjData(jsonObj, 'voltage');
-        return value ? this.getBatteryLevelByVoltage(value / 1.0) : defaultValue;
-    }
-    
-    getValueFrJsonObjData(jsonObj, valueKey) {
+    getValueFrJsonObjData1(jsonObj, valueKey) {
         var dataStr = jsonObj['data'];
         if(undefined != dataStr && null != dataStr) {
             var dataObj = JSON.parse(dataStr);
@@ -92,6 +87,64 @@ class AccessoryParser {
         return null;
     }
     
+    getValueFrJsonObjData2(jsonObj, valueKey) {
+        var params = jsonObj['params'];
+        if(undefined != params && null != params) {
+            for(var i in params) {
+                var value = params[i][valueKey];
+                if(undefined != value && null != value) {
+                    return value;
+                }
+            }
+        }
+
+        return null;
+    }
+    
+    getValueFrJsonObjData(jsonObj, valueKey) {
+        var dataStr = jsonObj['data'];
+        var params = jsonObj['params'];
+        if(dataStr) {
+            return this.getValueFrJsonObjData1(jsonObj, valueKey);
+        } else if(params) {
+            return this.getValueFrJsonObjData2(jsonObj, valueKey);
+        } else {
+            return null;
+        }
+    }
+    
+    getLowBatteryByVoltage(voltage) {
+        return isNaN(voltage) ? NaN : (voltage >= 2801 ? 0 : 1);
+    }
+
+    getBatteryLevelByVoltage(voltage) {
+        return isNaN(voltage) ? NaN : ((voltage - 2800)/5);
+    }
+    
+    getStatusLowBatteryCharacteristicValue(jsonObj, defaultValue) {
+        var proto_version_prefix = this.platform.getProtoVersionPrefixByProtoVersion(this.platform.getDeviceProtoVersionBySid(jsonObj['sid']));
+        if(1 == proto_version_prefix) {
+            var value = this.getValueFrJsonObjData1(jsonObj, 'voltage');
+        } else if(2 == proto_version_prefix) {
+            var value = this.getValueFrJsonObjData2(jsonObj, 'battery_voltage');
+        } else {
+        }
+        
+        return value ? this.getLowBatteryByVoltage(value / 1.0) : defaultValue;
+    }
+    
+    getBatteryLevelCharacteristicValue(jsonObj, defaultValue) {
+        var proto_version_prefix = this.platform.getProtoVersionPrefixByProtoVersion(this.platform.getDeviceProtoVersionBySid(jsonObj['sid']));
+        if(1 == proto_version_prefix) {
+            var value = this.getValueFrJsonObjData1(jsonObj, 'voltage');
+        } else if(2 == proto_version_prefix) {
+            var value = this.getValueFrJsonObjData2(jsonObj, 'battery_voltage');
+        } else {
+        }
+        
+        return value ? this.getBatteryLevelByVoltage(value / 1.0) : defaultValue;
+    }
+    
     parserBatteryService(accessory, jsonObj) {
         var that = this;
         var deviceSid = jsonObj['sid'];
@@ -99,36 +152,36 @@ class AccessoryParser {
         var chargingStateCharacteristic = batteryService.getCharacteristic(that.Characteristic.ChargingState);
         var statusLowBatteryCharacteristic = batteryService.getCharacteristic(that.Characteristic.StatusLowBattery);
         var batteryLevelCharacteristic = batteryService.getCharacteristic(that.Characteristic.BatteryLevel);
-        chargingStateCharacteristic.updateValue(false);
+        chargingStateCharacteristic.updateValue(that.Characteristic.ChargingState.NOT_CHARGEABLE);
         var statusLowBatteryValue = that.getStatusLowBatteryCharacteristicValue(jsonObj, null);
-        if(statusLowBatteryValue) {
-            statusLowBatteryCharacteristic.updateValue(that.getStatusLowBatteryCharacteristicValue(jsonObj));
+        if(null != statusLowBatteryValue) {
+            statusLowBatteryCharacteristic.updateValue(statusLowBatteryValue);
         }
         var batteryLevelValue = that.getBatteryLevelCharacteristicValue(jsonObj, null);
-        if(batteryLevelValue) {
-            batteryLevelCharacteristic.updateValue(that.getBatteryLevelCharacteristicValue(jsonObj));
+        if(null != batteryLevelValue) {
+            batteryLevelCharacteristic.updateValue(batteryLevelValue);
         }
         
-        // if (batteryLevelCharacteristic.listeners('get').length == 0) {
-            // batteryLevelCharacteristic.on("get", function(callback) {
-                // var command = '{"cmd":"read", "sid":"' + deviceSid + '"}';
-                // that.platform.sendReadCommand(deviceSid, command).then(result => {
-                    // var statusLowBatteryValue = that.getStatusLowBatteryCharacteristicValue(jsonObj, null);
-                    // if(statusLowBatteryValue) {
-                        // statusLowBatteryCharacteristic.updateValue(that.getStatusLowBatteryCharacteristicValue(jsonObj));
-                    // }
-                    // var batteryLevelValue = that.getBatteryLevelCharacteristicValue(jsonObj, null);
-                    // if(batteryLevelValue) {
-                        // callback(null, batteryLevelValue);
-                    // } else {
-                        // callback(new Error('get value fail: ' + result));
-                    // }
-                // }).catch(function(err) {
-                    // that.platform.log.error(err);
-                    // callback(err);
-                // });
-            // });
-        // }
+//        if (batteryLevelCharacteristic.listeners('get').length == 0) {
+//            batteryLevelCharacteristic.on("get", function(callback) {
+//                var command = '{"cmd":"read", "sid":"' + deviceSid + '"}';
+//                that.platform.sendReadCommand(deviceSid, command).then(result => {
+//                    var statusLowBatteryValue = that.getStatusLowBatteryCharacteristicValue(jsonObj, null);
+//                    if(null != statusLowBatteryValue) {
+//                        statusLowBatteryCharacteristic.updateValue(statusLowBatteryValue);
+//                    }
+//                    var batteryLevelValue = that.getBatteryLevelCharacteristicValue(jsonObj, null);
+//                    if(null != batteryLevelValue) {
+//                        callback(null, batteryLevelValue);
+//                    } else {
+//                        callback(new Error('get value fail: ' + result));
+//                    }
+//                }).catch(function(err) {
+//                    that.platform.log.error(err);
+//                    callback(err);
+//                });
+//            });
+//        }
     }
     
     callback2HB(deviceSid, characteristic, callback, err) {
